@@ -1,0 +1,14 @@
+{
+  "name": "Yaler-Proxy",
+  "productName": "yaler",
+  "version": "1.0.0",
+  "description": "P2P proxy",
+  "main": "./main.js",
+  "contributors": [
+    "Hadi Zolfaghari <hadi@cs.umass.edu>",
+    "Milad Nasr Esfahani <milad@cs.umass.edu>"
+  ],
+  "license": "MIT",
+  "dependencies": {
+  }
+}
