@@ -184,6 +184,8 @@
     "gulp-babel": "^6.1.2"
   },
   "dependencies": {
+    "biguint-format": "^1.0.0",
+    "crypto": "0.0.3",
     "electron-debug": "^1.1.0",
     "extract-text-webpack-plugin": "^2.0.0",
     "font-awesome": "^4.7.0",
@@ -195,8 +197,8 @@
     "react-router-redux": "^4.0.7",
     "redux": "^3.6.0",
     "redux-thunk": "^2.2.0",
-    "source-map-support": "^0.4.10",
-    "socksv5":"^0.0.6"
+    "socksv5": "^0.0.6",
+    "source-map-support": "^0.4.10"
   },
   "devEngines": {
     "node": ">=6.x",

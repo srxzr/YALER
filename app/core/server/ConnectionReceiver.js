@@ -1,28 +1,62 @@
 /**
  * Created by milad on 4/12/17.
  */
-import {RelayConnection} from './RelayConnection';
+import  {policy} from './Policer';
+const net = require('net');
 const jspack = require('jspack');
-const crypto = require('crypto');
+export class ConnectionReceiver {
+  constructor(socket) {
+    this.socket = socket;
 
-class ConnectionManager {
-  constructor() {
-
-    this.relayConnections = [];
-    this.ClientConnections = {};
-    this.Connectionmaps = {};
+    this.socket.on('data', (data) => {
+      this.onData(data);
+    });
     this.carrylen = 0;
     this.carry = '';
     this.lastcommand = '';
     this.lastconid = '';
     this.lastsize = 0;
     this.newconcarry = '';
+    this.connections = {}
+  }
 
+  write(conid, command, data) {
+
+    let sendpacket = Buffer(7);
+    sendpacket.writeUInt16BE(conid);
+    sendpacket.write(command, 2);
+    sendpacket.writeUInt32BE(data.length, 3);
+    const b = Buffer.concat([sendpacket, data]);
+    this.socket.write(b);
   }
 
   newConnection(ip, port, conid) {
-    console.log("Connection Created");
+    try {
 
+
+      if (policy.checkDestination(ip, port)) {
+
+        this.connections[conid] = net.connect(ip, port, () => {
+          this.write(conid, 'N', Buffer(ip + ':' + String(port)));
+        });
+        this.connections[conid].on('data', (data) => {
+          this.write(conid, 'D', data);
+        });
+        this.connections[conid].on('end', () => {
+          this.write(conid, 'C', Buffer(ip + ':' + String(port)));
+          delete this.connections[conid];
+        });
+        this.connections[conid].on('error', () => {
+          this.write(conid, 'C', Buffer(ip + ':' + String(port)));
+          delete this.connections[conid];
+        });
+
+
+      }
+    } catch (err) {
+      this.write(conid, 'C', Buffer(ip + ':' + String(port)));
+      console.debug(err);
+    }
   }
 
   commandParser(lastconid, CMD, size, data) {
@@ -49,19 +83,17 @@ class ConnectionManager {
       }
     }
     if (CMD === 'D') {
-      //console.log(this.ClientConnections);
-      if (lastconid in this.ClientConnections) {
-        console.log("I AM HERE");
-        this.ClientConnections[lastconid].write(data);
+      if (lastconid in this.connections) {
+        this.connections[lastconid].write(data);
       }
     }
     if (CMD === 'C') {
-      this.ClientConnections[lastconid].end();
+      this.connections[lastconid].end();
     }
   }
 
-  listener(data) {
-    console.log('DATA RECEIVED', data);
+
+  onData(data) {
     while (data) {
       if (this.carrylen > 0) {
         if (data.length <= this.carrylen) {
@@ -109,60 +141,4 @@ class ConnectionManager {
     }
 
   }
-
-  connectionClose(socket) {
-    console.log('closed');
-
-  }
-
-  writer(data, conid) {
-    console.log('DATA SEND', data, conid);
-    this.Connectionmaps[conid].write(conid, 'D', data);
-  }
-
-  newRelayConnection(relayip, relayport, relaycert) {
-    try {
-      var relay = new RelayConnection(relayip, relayport, relaycert, (data) => {
-        this.listener(data);
-      }, this.connection_close);
-      this.relayConnections.push(relay);
-    }
-    catch (err) {
-      console.error('Error creating relay', err);
-    }
-
-
-  }
-
-  assignRelay() {
-    return this.relayConnections[Math.floor(Math.random() * this.relayConnections.length)];
-
-  }
-
-
-  newClientConnection(connection, dstip, dstport) {
-    var conid = crypto.randomBytes(2).readUInt16BE();
-
-    console.log(conid, dstip, dstport);
-    if (this.relayConnections.length === 0) {
-      console.log("No Relay To connect!!!");
-      throw "ERROR";
-    }
-    this.ClientConnections[conid] = connection;
-    this.Connectionmaps[conid] = this.assignRelay();
-    var cr = String(dstip) + ':' + String(dstport);
-    console.log('sendsize:', cr.length);
-    this.Connectionmaps[conid].write(conid, 'N', Buffer(cr));
-    connection.on('data', (data) => {
-      this.writer(data, conid);
-      console.log(conid, 'data')
-    });
-
-
-  }
-
 }
-
-
-var ConMgr = new ConnectionManager();
-module.exports = {Conmgr: ConMgr};
