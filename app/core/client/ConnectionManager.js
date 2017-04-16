@@ -51,7 +51,7 @@ class ConnectionManager {
     if (CMD === 'D') {
       //console.log(this.ClientConnections);
       if (lastconid in this.ClientConnections) {
-        console.log("I AM HERE");
+        //console.log("I AM HERE");
         this.ClientConnections[lastconid].write(data);
       }
     }
@@ -61,7 +61,7 @@ class ConnectionManager {
   }
 
   listener(data) {
-    console.log('DATA RECEIVED', data);
+    //console.log('DATA RECEIVED', data);
     while (data) {
       if (this.carrylen > 0) {
         if (data.length <= this.carrylen) {
@@ -155,7 +155,7 @@ class ConnectionManager {
     this.Connectionmaps[conid].write(conid, 'N', Buffer(cr));
     connection.on('data', (data) => {
       this.writer(data, conid);
-      console.log(conid, 'data')
+      
     });
 
 

@@ -12,7 +12,7 @@ export class Crypto {
     this.onData = onData;
     this.onError = onError;
     this.decipher.on('readable', () => {
-      console.log("data to read");
+
 
       var data = this.decipher.read();
       while (data.length > 0) {

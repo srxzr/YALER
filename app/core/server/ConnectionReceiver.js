@@ -14,7 +14,7 @@ export class ConnectionReceiver {
     this.socket = socket;
 
     this.socket.on('data', (data) => {
-      console.log('DATA RECIEVED', data);
+      //console.log('DATA RECIEVED', data);
       if (this.isAuthenticated) {
         this.crypt.decrypt(data);
       } else {
@@ -39,7 +39,7 @@ export class ConnectionReceiver {
 
   authenticate(data) {
     //data = Buffer.concat([this.newconcarry, data]);
-    console.log("MY DATA", data);
+    //console.log("MY DATA", data);
     if (data.length >= this.headersize) {
       const conid = data.toString('ascii', 0, 4);
       const desc = pendMgr.getPendingConnection(conid);
