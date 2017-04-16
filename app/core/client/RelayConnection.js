@@ -21,7 +21,7 @@ export class RelayConnection {
     this.socket = net.connect(this.relayport, this.relayip, () => {
       console.log(this.relayip, this.relayport, 'SENDING DATA');
 
-      var i = Math.random() * (100 - 7) + 7;
+      var i = Math.random() * (100 - 1) + 1;
       var padarr = [Buffer(desc['clientid'])];
       while (i > 0) {
         padarr.push(this.cipher.encryptzero());
