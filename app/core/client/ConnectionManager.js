@@ -155,7 +155,7 @@ class ConnectionManager {
     this.Connectionmaps[conid].write(conid, 'N', Buffer(cr));
     connection.on('data', (data) => {
       this.writer(data, conid);
-      
+
     });
 
 
