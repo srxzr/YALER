@@ -16,9 +16,17 @@ gulp.task("server", function() {
   })).
   pipe(gulp.dest("app/dist/server/"));
 });
+gulp.task("crypto", function() {
+  return gulp.src("app/core/crypt/*.js").
+  pipe(babel({
+    plugins: ['transform-react-jsx']
+  })).
+  pipe(gulp.dest("app/dist/crypt/"));
+});
 
-gulp.task("watch", ['client', 'server'], function() {
+gulp.task("watch", ['client', 'server','crypto'], function() {
   gulp.watch('app/core/client/*', ['client']);
   gulp.watch('app/core/server/*', ['server']);
+  gulp.watch('app/core/crypt/*', ['crypto']);
 });
 

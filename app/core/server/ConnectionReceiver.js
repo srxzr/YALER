@@ -4,21 +4,68 @@
 import  {policy} from './Policer';
 const net = require('net');
 const jspack = require('jspack');
+
+import {Crypto} from '../crypt/crypto';
+
+import {pendMgr} from './PendingConnections';
+
 export class ConnectionReceiver {
   constructor(socket) {
     this.socket = socket;
 
     this.socket.on('data', (data) => {
-      this.onData(data);
+      console.log('DATA RECIEVED', data);
+      if (this.isAuthenticated) {
+        this.crypt.decrypt(data);
+      } else {
+        this.authenticate(data);
+      }
     });
+    this.crypt = false;
+    this.isAuthenticated = false;
     this.carrylen = 0;
     this.carry = '';
     this.lastcommand = '';
     this.lastconid = '';
     this.lastsize = 0;
-    this.newconcarry = '';
-    this.connections = {}
+    this.headersize = 5;
+
+
+    this.newconnectioncarry = Buffer(0);
+
+    this.initcarry = '';
+    this.connections = {};
   }
+
+  authenticate(data) {
+    //data = Buffer.concat([this.newconcarry, data]);
+    console.log("MY DATA", data);
+    if (data.length >= this.headersize) {
+      const conid = data.toString('ascii', 0, 4);
+      const desc = pendMgr.getPendingConnection(conid);
+      console.log("Conid", conid);
+      if (desc) {
+        console.log("clientID", conid);
+        this.crypt = new Crypto(desc['readkey'], desc['readiv'], desc['writekey'], desc['writeiv'], (d) => {
+          this.onData(d);
+        }, () => {
+          this.socket.end();
+        });
+        this.crypt.decrypt(data.slice(4, data.length));
+        this.isAuthenticated = true;
+        console.log("Authenticated");
+
+      }
+      else {
+        this.socket.end();
+      }
+
+
+    }
+
+
+  }
+
 
   write(conid, command, data) {
 
@@ -27,7 +74,7 @@ export class ConnectionReceiver {
     sendpacket.write(command, 2);
     sendpacket.writeUInt32BE(data.length, 3);
     const b = Buffer.concat([sendpacket, data]);
-    this.socket.write(b);
+    this.socket.write(this.crypt.encrypt(b));
   }
 
   newConnection(ip, port, conid) {
@@ -94,46 +141,59 @@ export class ConnectionReceiver {
 
 
   onData(data) {
+
     while (data) {
+
       if (this.carrylen > 0) {
         if (data.length <= this.carrylen) {
+
           this.commandParser(this.lastconid, this.lastcommand, this.lastsize, data);
           this.carrylen -= data.length;
+
+
           break;
         } else {
+
           this.commandParser(this.lastconid, this.lastcommand, this.lastsize, data.slice(0, this.carrylen));
 
           data = data.slice(this.carrylen);
+
           this.carrylen = 0;
         }
 
 
       }
       else {
-        if (this.carry) {
-          data = Buffer(this.carry + data);
+        if (this.carry.length > 0) {
+          data = Buffer(this.carry + data.toString());
+          this.carry = '';
         }
         if (data.length < 7) {
-          this.carry = data;
-        }
-
-        this.lastconid = data.readUInt16BE(0);
-        this.lastcommand = data.toString('ascii', 2, 3);
-
-        this.carrylen = data.readUInt32BE(3);
-        this.lastsize = this.carrylen;
-
-        console.log(data, String(data), this.lastconid, this.lastsize, this.lastcommand);
-
-
-        if ((data.length - 7) <= this.carrylen) {
-          this.commandParser(this.lastconid, this.lastcommand, this.lastsize, data.slice(7));
-          this.carrylen -= (data.length - 7);
-          break;
+          this.carry = String(data);
         } else {
-          this.commandParser(this.lastconid, this.lastcommand, this.lastsize, data.slice(7, this.carrylen + 7));
-          this.carrylen -= 0;
-          data = data.slice(this.carrylen + 7);
+
+          this.lastconid = data.readUInt16BE(0);
+          this.lastcommand = data.toString('ascii', 2, 3);
+
+          this.carrylen = data.readUInt32BE(3);
+          this.lastsize = this.carrylen;
+
+
+
+
+          if ((data.length - 7) <= this.carrylen) {
+
+
+            this.commandParser(this.lastconid, this.lastcommand, this.lastsize, data.slice(7));
+            this.carrylen -= (data.length - 7);
+
+            break;
+          } else {
+            this.commandParser(this.lastconid, this.lastcommand, this.lastsize, data.slice(7, this.carrylen + 7));
+            data = data.slice(this.carrylen + 7);
+            this.carrylen = 0;
+
+          }
         }
 
 

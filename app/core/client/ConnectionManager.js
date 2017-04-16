@@ -120,11 +120,11 @@ class ConnectionManager {
     this.Connectionmaps[conid].write(conid, 'D', data);
   }
 
-  newRelayConnection(relayip, relayport, relaycert) {
+  newRelayConnection(relayip, relayport, relaycert,desc) {
     try {
       var relay = new RelayConnection(relayip, relayport, relaycert, (data) => {
         this.listener(data);
-      }, this.connection_close);
+      }, this.connection_close,desc);
       this.relayConnections.push(relay);
     }
     catch (err) {
@@ -134,7 +134,7 @@ class ConnectionManager {
 
   }
 
-  assignRelay() {
+  assignRelay(ip,port) {
     return this.relayConnections[Math.floor(Math.random() * this.relayConnections.length)];
 
   }
@@ -149,7 +149,7 @@ class ConnectionManager {
       throw "ERROR";
     }
     this.ClientConnections[conid] = connection;
-    this.Connectionmaps[conid] = this.assignRelay();
+    this.Connectionmaps[conid] = this.assignRelay(dstip,dstport);
     var cr = String(dstip) + ':' + String(dstport);
     console.log('sendsize:', cr.length);
     this.Connectionmaps[conid].write(conid, 'N', Buffer(cr));

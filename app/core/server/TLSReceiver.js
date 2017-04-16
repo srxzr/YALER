@@ -5,7 +5,7 @@ const tls = require('tls');
 const fs = require('fs');
 import  {ConnectionReceiver} from './ConnectionReceiver';
 
-export function runtestserver() {
+export function runTLSserver() {
 
   const options = {
     key: fs.readFileSync('./app/core/test-certs/relay-key.pem'),
